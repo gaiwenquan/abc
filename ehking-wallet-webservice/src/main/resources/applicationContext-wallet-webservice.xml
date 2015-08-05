@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jpa="http://www.springframework.org/schema/data/jpa" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+          http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+          http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+          http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+          http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+          http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd
+          http://www.springframework.org/schema/mvc
+       	  http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+	<!-- 扫描远程服务类注解 -->
+	<context:component-scan base-package="com.ehking.wallet.**.facade">
+		<context:include-filter type="annotation"
+			expression="com.ehking.commons.remoting.annotation.stereotype.RemoteService" />
+		<context:include-filter type="annotation"
+			expression="org.springframework.web.bind.annotation.ControllerAdvice" />
+	</context:component-scan>
+
+	<!-- 扫描Listener -->
+	<context:component-scan base-package="com.ehking.wallet.**.listener">
+		<context:include-filter type="annotation"
+			expression="com.ehking.commons.event.annotation.stereotype.Listener" />
+	</context:component-scan>
+	
+	<bean id="dozerMapper"  class="org.dozer.spring.DozerBeanMapperFactoryBean"> 
+   		<property name="mappingFiles"  value="classpath*:/mapping/mapping-*.xml"/>
+    </bean>
+
+	<!-- 自动发布远程接口 -->
+	<bean
+		class="com.ehking.commons.remoting.annotation.beans.factory.RemotingServiceAutoExporter" />
+		
+	<bean name="facadeMethodValidatorInterceptor" class="com.ehking.commons.remoting.DefaultRemotingValidateInterceptor">
+    	<property name="validatorFactory">
+    		<bean class="com.ehking.commons.validator.DefaultValidatorFactory"> 
+			    <property name="validationConfigLocations" value="classpath*:/validator/validator-*.xml" /> 
+			</bean>
+    	</property>
+    </bean>
+    <!-- 对远程服务加参数验证拦截 -->
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="facadePoint"   expression="execution(* com.ehking.wallet..facade..*.*(..))"/>  
+        <aop:advisor pointcut-ref="facadePoint" advice-ref="facadeMethodValidatorInterceptor"/>
+    </aop:config>	
+
+	<import resource="classpath:applicationContext-wallet-webservice-remote.xml" />
+	<import resource="classpath:applicationContext-wallet-webservice-jms.xml" />
+</beans>
